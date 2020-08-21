@@ -32,6 +32,7 @@ void print(int first_line, int second_line) {
     }
     while(count != second_line + 1) {
         fputs(temp_line->line, stdout);
+        fputs("\n", stdout);
         temp_line = temp_line->next_line;
         count++;
     }
@@ -41,11 +42,9 @@ void print(int first_line, int second_line) {
 void change (int first_line, int second_line) {
     char *new_line = malloc(NEW_LINE);
     int count = 1;
-    if(edU == NULL) {
-        edU = malloc(sizeof(text_editor));
-        edU->lines = malloc(sizeof(line));
+    if(edU->next == NULL) {
         edU->version = 1;
-        if(edU->lines == NULL && first_line == 1) {
+        if(first_line == 1) {
             fgets(new_line, NEW_LINE, stdin);
             strtok(new_line, "\n");
             edU->lines->line = realloc(edU->lines->line, strlen(new_line) + 1);
@@ -119,6 +118,10 @@ char split_command(char* str, int* num1, int* num2){
 
 
 int main() {
+    edU = malloc(sizeof(text_editor));
+    edU->next = NULL;
+    edU->lines = malloc(sizeof(line));
+    edU->lines->next_line = NULL;
     char *inputBuffer = malloc(INPUT_BUFFER_SIZE);
     while (1) {
         if (fgets(inputBuffer, INPUT_BUFFER_SIZE, stdin)) {
