@@ -20,73 +20,109 @@ typedef struct text {
 text_editor *edU;
 
 void print(int first_line, int second_line) {
-    text_editor *temp = edU;
-    int count = 1;
-    while(temp->next != NULL) {
-        temp = temp->next;
+    if(first_line == 0 && second_line == 0) {
+        putc_unlocked('.', stdout);
     }
-    line *temp_line = temp->lines;
-    while (first_line != count) {
-        temp_line= temp_line->next_line;
-        count++;
-    }
-    while(count != second_line + 1) {
-        fputs(temp_line->line, stdout);
-        fputs("\n", stdout);
-        temp_line = temp_line->next_line;
-        count++;
+    else {
+        text_editor *temp = edU;
+        int count = 1;
+        while (temp->next != NULL) {
+            temp = temp->next;
+        }
+        line *temp_line = temp->lines;
+        while (first_line != count) {
+            temp_line = temp_line->next_line;
+            count++;
+        }
+        while (count != second_line + 1) {
+            if (temp_line->line != NULL) {
+                fputs(temp_line->line, stdout);
+            } else {
+                putc_unlocked('.', stdout);
+            }
+            putc_unlocked('\n', stdout);
+            temp_line = temp_line->next_line;
+            count++;
+        }
     }
 }
 
 
 void change (int first_line, int second_line) {
-    char *new_line = malloc(NEW_LINE);
+    char *new_line = malloc(sizeof(char) * NEW_LINE);
     int count = 1;
-    if(edU->next == NULL) {
+    line *temp_line;
+    if(edU == NULL) {
+        // First change
+        edU = malloc(sizeof(text_editor));
+        edU->next = NULL;
+        edU->lines = malloc(sizeof(line));
+        edU->lines->next_line = NULL;
         edU->version = 1;
+        temp_line = edU->lines;
         if(first_line == 1) {
             fgets(new_line, NEW_LINE, stdin);
             strtok(new_line, "\n");
-            edU->lines->line = realloc(edU->lines->line, strlen(new_line) + 1);
+            edU->lines->line = malloc(sizeof(char) * strlen(new_line) + 1);
             strcpy(edU->lines->line, new_line);
-            count++;
         }
-        line *temp_line = edU->lines;
-        while (second_line + 1 != count) {
-            fgets(new_line, NEW_LINE, stdin);
-            strtok(new_line, "\n");
-            temp_line->next_line = realloc(temp_line->next_line, sizeof(line));
-            temp_line->next_line->line = realloc(temp_line->next_line->line, strlen(new_line) + 1);
+        else {
+            while(count != first_line - 1) {
+                temp_line->next_line = malloc(sizeof(line));
+                temp_line = temp_line->next_line;
+                count++;
+            }
+        }
+        fgets(new_line, NEW_LINE, stdin);
+        strtok(new_line, "\n");
+        while (strcmp(new_line, ".") != 0) {
+            temp_line->next_line = malloc(sizeof(line));
+            temp_line->next_line->next_line = NULL;
+            temp_line->next_line->line = malloc(sizeof(char) * strlen(new_line) + 1);
             strcpy(temp_line->next_line->line, new_line);
             temp_line = temp_line->next_line;
-            count++;
+            fgets(new_line, NEW_LINE, stdin);
+            strtok(new_line, "\n");
         }
     }
     else {
         text_editor *temp = edU;
         while (temp->next != NULL) {
             temp = temp->next;
-            count++;
         }
         temp->next = malloc(sizeof(text_editor));
-        temp->next->version = temp->version + 1;
-        line *temp_line = temp->next->lines;
-        while (count != first_line) {
+        temp->next->next = NULL;
+        temp->next->lines = malloc(sizeof(line));
+        temp->next->lines->next_line = NULL;
+        memcpy(temp->next->lines, temp->lines, sizeof(line));
+        temp->next->version = (temp->version) + 1;
+        temp = temp->next;
+        temp_line = temp->lines;
+        while (count != first_line - 1) {
             temp_line = temp_line->next_line;
             count++;
         }
-        while (second_line + 1 != count) {
+        fgets(new_line, NEW_LINE, stdin);
+        strtok(new_line, "\n");
+        while (strcmp(new_line, ".") != 0) {
+            temp_line->next_line = malloc(sizeof(line));
+            temp_line->next_line->next_line = NULL;
+            temp_line->next_line->line = malloc(sizeof(char) * strlen(new_line) + 1);
+            strcpy(temp_line->next_line->line, new_line);
+            temp_line = temp_line->next_line;
             fgets(new_line, NEW_LINE, stdin);
             strtok(new_line, "\n");
-            temp_line->line = realloc(temp->lines->line, strlen(new_line) + 1);
-            strcpy(temp_line->line, new_line);
-            temp_line = temp_line->next_line;
-            count++;
         }
     }
+    free(new_line);
 }
 void delete (int first_line, int second_line) {
+    if (first_line == 0 && second_line == 0) {
+        return;
+    }
+    else {
 
+    }
 }
 
 void undo(int line) {
@@ -97,7 +133,7 @@ void redo(int line) {
 
 }
 
-char split_command(char* str, int* num1, int* num2){
+char split_command(char* str, int *num1, int *num2){
     char* c = str;
     int idx = 0;
     int comma;
@@ -110,6 +146,7 @@ char split_command(char* str, int* num1, int* num2){
         c++;
         idx++;
     }
+    *c = '\0';
     char command = *(c-1);
     *(c-1) = '\0';
     *num2 = atoi(str+comma+1);
@@ -118,24 +155,21 @@ char split_command(char* str, int* num1, int* num2){
 
 
 int main() {
-    edU = malloc(sizeof(text_editor));
-    edU->next = NULL;
-    edU->lines = malloc(sizeof(line));
-    edU->lines->next_line = NULL;
-    char *inputBuffer = malloc(INPUT_BUFFER_SIZE);
+    char *inputBuffer = malloc(sizeof(char) * INPUT_BUFFER_SIZE);
     while (1) {
         if (fgets(inputBuffer, INPUT_BUFFER_SIZE, stdin)) {
             strtok(inputBuffer, "\n");
-            if (inputBuffer[0] == 'q') {
+            if (*inputBuffer == 'q') {
+                free(inputBuffer);
+                free(edU->lines);
+                free(edU);
                 return 0;
             }
-            char *s = malloc(strlen(inputBuffer) + 1);
+            char *s = malloc(sizeof(char) * strlen(inputBuffer) + 1);
             strcpy(s, inputBuffer);
             int a, b;
             char c = split_command(s, &a, &b);
-            if (c == 'q') {
-                return 0;
-            }
+            //printf("Command: %c on lines from %d to %d\n", c, a, b);
             if (c == 'c') {
                 change(a, b);
             }
@@ -153,7 +187,5 @@ int main() {
             }
         }
     }
-    //printf("Command: %c on lines from %d to %d\n", c, a, b);
-    return 0;
 }
 
