@@ -2,138 +2,125 @@
 #include <stdlib.h>
 #include <string.h>
 
-
-#define INPUT_BUFFER_SIZE 15
-#define NEW_LINE 1025
-
-typedef struct line {
-    char *line;
-    struct line *next_line;
-}line;
+#define INPUT_BUFFER_SIZE 1026
 
 typedef struct text {
-    int version;
-    struct line *lines;
+    char **lines;
     struct text *next;
+    struct text *prec;
 }text_editor;
 
-text_editor *edU;
+long long array_size = 0;
+char **lines = NULL;
 
-void print(int first_line, int second_line) {
+void print(long long first_line, long long second_line) {
+    long long i;
     if(first_line == 0 && second_line == 0) {
-        putc_unlocked('.', stdout);
+        putc('.', stdout);
+        putc('\n', stdout);
     }
     else {
-        text_editor *temp = edU;
-        int count = 1;
-        while (temp->next != NULL) {
-            temp = temp->next;
+        if (first_line == 0) {
+            putc('.',stdout);
+            putc('\n', stdout);
+            i = first_line;
         }
-        line *temp_line = temp->lines;
-        while (first_line != count) {
-            temp_line = temp_line->next_line;
-            count++;
+        else {
+            i = first_line - 1;
         }
-        while (count != second_line + 1) {
-            if (temp_line->line != NULL) {
-                fputs(temp_line->line, stdout);
+        while (i < second_line) {
+            if (i < array_size && i >= first_line - 1 && lines[i] != NULL) {
+                fputs(lines[i], stdout);
             } else {
-                putc_unlocked('.', stdout);
+                putc('.',stdout);
             }
-            putc_unlocked('\n', stdout);
-            temp_line = temp_line->next_line;
-            count++;
+            putc('\n',stdout);
+            i++;
         }
     }
 }
 
 
-void change (int first_line, int second_line) {
-    char *new_line = malloc(sizeof(char) * NEW_LINE);
-    int count = 1;
-    line *temp_line;
-    if(edU == NULL) {
-        // First change
-        edU = malloc(sizeof(text_editor));
-        edU->next = NULL;
-        edU->lines = malloc(sizeof(line));
-        edU->lines->next_line = NULL;
-        edU->version = 1;
-        temp_line = edU->lines;
-        if(first_line == 1) {
-            fgets(new_line, NEW_LINE, stdin);
-            strtok(new_line, "\n");
-            edU->lines->line = malloc(sizeof(char) * strlen(new_line) + 1);
-            strcpy(edU->lines->line, new_line);
-        }
-        else {
-            while(count != first_line - 1) {
-                temp_line->next_line = malloc(sizeof(line));
-                temp_line = temp_line->next_line;
-                count++;
-            }
-        }
-        fgets(new_line, NEW_LINE, stdin);
+int change (text_editor **head, text_editor **tail, long long first_line, long long second_line) {
+    char *new_line = malloc(sizeof(char) * INPUT_BUFFER_SIZE);
+    text_editor *new_node = malloc(sizeof(text_editor));
+    long i = 0;
+    if (lines == NULL) {
+        lines = malloc(sizeof(char *) * second_line + 1);
+        fgets(new_line, INPUT_BUFFER_SIZE, stdin);
         strtok(new_line, "\n");
+        array_size = second_line;
         while (strcmp(new_line, ".") != 0) {
-            temp_line->next_line = malloc(sizeof(line));
-            temp_line->next_line->next_line = NULL;
-            temp_line->next_line->line = malloc(sizeof(char) * strlen(new_line) + 1);
-            strcpy(temp_line->next_line->line, new_line);
-            temp_line = temp_line->next_line;
-            fgets(new_line, NEW_LINE, stdin);
+            lines[i] = malloc(sizeof(char) * strlen(new_line) + 1);
+            strcpy(lines[i], new_line);
+            i++;
+            fgets(new_line, INPUT_BUFFER_SIZE, stdin);
             strtok(new_line, "\n");
+
         }
-    }
-    else {
-        text_editor *temp = edU;
-        while (temp->next != NULL) {
-            temp = temp->next;
+        new_node->lines = lines;
+        new_node->next = NULL;
+        new_node->prec = NULL;
+        if (*head == NULL) {
+            *head = new_node;
+            *tail = *head;
+        } else {
+            (*tail)->next = new_node;
+            new_node->prec = *tail;
+
+            *tail = (*tail)->next; // Increment LAST to point to the new last node.
         }
-        temp->next = malloc(sizeof(text_editor));
-        temp->next->next = NULL;
-        temp->next->lines = malloc(sizeof(line));
-        temp->next->lines->next_line = NULL;
-        memcpy(temp->next->lines, temp->lines, sizeof(line));
-        temp->next->version = (temp->version) + 1;
-        temp = temp->next;
-        temp_line = temp->lines;
-        while (count != first_line - 1) {
-            temp_line = temp_line->next_line;
-            count++;
-        }
-        fgets(new_line, NEW_LINE, stdin);
+    } else {
+        fgets(new_line, INPUT_BUFFER_SIZE, stdin);
         strtok(new_line, "\n");
-        while (strcmp(new_line, ".") != 0) {
-            temp_line->next_line = malloc(sizeof(line));
-            temp_line->next_line->next_line = NULL;
-            temp_line->next_line->line = malloc(sizeof(char) * strlen(new_line) + 1);
-            strcpy(temp_line->next_line->line, new_line);
-            temp_line = temp_line->next_line;
-            fgets(new_line, NEW_LINE, stdin);
+        if (array_size < second_line) {
+            lines = realloc(lines, sizeof(char *) * second_line);
+            array_size = second_line;
+        }
+        for (i = first_line - 1; strcmp(new_line, ".") != 0; i++) {
+            lines[i] = malloc(sizeof(char) * strlen(new_line) + 1);
+            strcpy(lines[i], new_line);
+            fgets(new_line, INPUT_BUFFER_SIZE, stdin);
             strtok(new_line, "\n");
+        }
+
+        new_node->lines = lines;
+        new_node->next = NULL;
+        new_node->prec = NULL;
+        if (*head == NULL) {
+            *head = new_node;
+            *tail = *head;
+        } else {
+            (*tail)->next = new_node;
+            new_node->prec = *tail;
+            *tail = (*tail)->next; // Increment LAST to point to the new last node.
         }
     }
     free(new_line);
 }
-void delete (int first_line, int second_line) {
+
+
+void delete(text_editor **head, text_editor **tail, long long first_line, long long second_line) {
+    text_editor *new_node = malloc(sizeof(text_editor));
     if (first_line == 0 && second_line == 0) {
-        return;
-    }
-    else {
+        new_node->lines = lines;
+        (*tail)->next = new_node;
+        new_node->prec = *tail;
+        *tail = (*tail)->next;
+    } else {
 
     }
 }
 
-void undo(int line) {
+void undo(long long line) {
 
 }
 
-void redo(int line) {
+void redo(long long line) {
 
 }
 
-char split_command(char* str, int *num1, int *num2){
+char split_command(char* str, long long *num1, long long *num2){
     char* c = str;
     int idx = 0;
     int comma;
@@ -153,9 +140,10 @@ char split_command(char* str, int *num1, int *num2){
     return command;
 }
 
-
 int main() {
     char *inputBuffer = malloc(sizeof(char) * INPUT_BUFFER_SIZE);
+    text_editor *edU = NULL;
+    text_editor *tail = NULL;
     while (1) {
         if (fgets(inputBuffer, INPUT_BUFFER_SIZE, stdin)) {
             strtok(inputBuffer, "\n");
@@ -167,14 +155,14 @@ int main() {
             }
             char *s = malloc(sizeof(char) * strlen(inputBuffer) + 1);
             strcpy(s, inputBuffer);
-            int a, b;
+            long long a, b;
             char c = split_command(s, &a, &b);
             //printf("Command: %c on lines from %d to %d\n", c, a, b);
             if (c == 'c') {
-                change(a, b);
+                change(&edU, &tail, a, b);
             }
             if (c == 'd') {
-                delete(a, b);
+                delete(&edU, &tail, a, b);
             }
             if (c == 'u') {
                 undo(a);
@@ -185,6 +173,7 @@ int main() {
             if (c == 'p') {
                 print(a, b);
             }
+            free(s);
         }
     }
 }
