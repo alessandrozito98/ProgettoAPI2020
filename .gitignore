@@ -56,5 +56,4 @@ dkms.conf
 cmake-build-debug
 
 #Junk Files
-main.out
 useful_functions.c
