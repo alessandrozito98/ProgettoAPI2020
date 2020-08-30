@@ -41,10 +41,10 @@ void print(long long first_line, long long second_line) {
 }
 
 
-int change (text_editor **head, text_editor **tail, long long first_line, long long second_line) {
+void change (text_editor **head, text_editor **tail, long long first_line, long long second_line) {
     char *new_line = malloc(sizeof(char) * INPUT_BUFFER_SIZE);
     text_editor *new_node = malloc(sizeof(text_editor));
-    long i = 0;
+    long long i = 0;
     if (lines == NULL) {
         lines = malloc(sizeof(char *) * second_line + 1);
         fgets(new_line, INPUT_BUFFER_SIZE, stdin);
@@ -97,18 +97,64 @@ int change (text_editor **head, text_editor **tail, long long first_line, long l
         }
     }
     free(new_line);
+    free(new_node);
 }
 
 
 void delete(text_editor **head, text_editor **tail, long long first_line, long long second_line) {
     text_editor *new_node = malloc(sizeof(text_editor));
-    if (first_line == 0 && second_line == 0) {
-        new_node->lines = lines;
-        (*tail)->next = new_node;
-        new_node->prec = *tail;
-        *tail = (*tail)->next;
-    } else {
+    if (lines == NULL || first_line == 0 && second_line == 0 || first_line > array_size && second_line >= array_size) {
+        new_node->lines = malloc(sizeof(char ) * array_size + 1);
+        memcpy(new_node->lines, lines, array_size);
+        new_node->next = NULL;
+        new_node = *tail;
+        if (*head == NULL) {
+            *head = new_node;
+            *tail = *head;
+        } else {
+            (*tail)->next = new_node;
+            new_node->prec = *tail;
+            *tail = (*tail)->next; // Increment LAST to point to the new last node.
+        }
+    }
+    else {
+        long long i;
+        if (second_line >= array_size) {
+            if(first_line == 1 || first_line == 0) {
+                array_size = 0;
+            }
+            else {
+                array_size = first_line;
+            }
+        }
+        else {
+            if (first_line == second_line) {
+                for (i = first_line - 1; i + 1 < array_size; i++) {
+                    lines[i] = lines[i + 1];
+                }
+                array_size = array_size - 1;
+            }
+            else {
+                for (i = first_line - 1; i + (second_line - first_line + 1) < array_size; i++) {
+                    lines[i] = lines[i + (second_line - first_line + 1)];
+                }
 
+                array_size = array_size - (second_line - first_line + 1);
+            }
+
+        }
+        new_node->lines = malloc(sizeof(char *) * array_size + 1);
+        memcpy(new_node->lines, lines, array_size);
+        new_node->next = NULL;
+        new_node->prec = NULL;
+        if (*head == NULL) {
+            *head = new_node;
+            *tail = *head;
+        } else {
+            (*tail)->next = new_node;
+            new_node->prec = *tail;
+            *tail = (*tail)->next; // Increment LAST to point to the new last node.
+        }
     }
 }
 
@@ -149,8 +195,9 @@ int main() {
             strtok(inputBuffer, "\n");
             if (*inputBuffer == 'q') {
                 free(inputBuffer);
-                free(edU->lines);
                 free(edU);
+                free(lines);
+                free(tail);
                 return 0;
             }
             char *s = malloc(sizeof(char) * strlen(inputBuffer) + 1);
