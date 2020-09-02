@@ -2,19 +2,62 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define INPUT_BUFFER_SIZE 1026
+#define NEW_LINE 1026
+#define INPUT_BUFFER_SIZE 100
 
 typedef struct text {
     long long first_line;
     long long second_line;
+    long long array_size;
     char command;
     char **lines;
     struct text *next;
     struct text *prec;
 }text_editor;
 
+
 long long array_size = 0;
+long long max_undo = 0;
+long long max_redo = 0;
 char **lines = NULL;
+
+
+void insert_at_end(text_editor **headref, text_editor **lastref, char c, long long a, long long b) {
+    long long i, j = 0;
+    text_editor *temp = malloc(sizeof(text_editor));
+    temp->command = c;
+    temp->first_line = a;
+    temp->second_line = b;
+    temp->array_size = array_size;
+    temp->next = NULL;
+    if(c == 'd') {
+        temp->lines = malloc(sizeof(char *) * array_size);
+        for (i = 0; i < array_size; i++) {
+            temp->lines[i] = malloc(sizeof(char) * strlen(lines[i]) + 1);
+            strcpy(temp->lines[i], lines[i]);
+        }
+    }
+
+    else {
+        temp->lines = malloc(sizeof(char *) * (b - a + 1));
+        for (i = a - 1; i < b; i++) {
+            temp->lines[j] = malloc(sizeof(char) * strlen(lines[i]) + 1);
+            memcpy(temp->lines[j], lines[i], strlen(lines[i]));
+            j++;
+        }
+    }
+    if(*headref == NULL) { //Checks if the list is empty.
+        *headref = temp; // Places the address of the new node in HEAD pointer.
+        *lastref = temp; // Places the address of the new node in LAST pointer.
+    }
+    else {
+        /* If the list is not empty, then make the next pointer of the present last node point to the new node*/
+        (*lastref)->next = temp;
+        temp->prec = *lastref;
+        *lastref = (*lastref)->next;// Increment LAST to point to the new last node.
+    }
+}
+
 
 void print(long long first_line, long long second_line) {
     long long i;
@@ -44,94 +87,80 @@ void print(long long first_line, long long second_line) {
 }
 
 
-void change (text_editor **head, text_editor **tail, long long first_line, long long second_line) {
-    char *new_line = malloc(sizeof(char) * INPUT_BUFFER_SIZE);
-    text_editor *new_node = malloc(sizeof(text_editor));
-    new_node->first_line = first_line;
-    new_node->second_line = second_line;
-    new_node->command = 'c';
-    new_node->lines = malloc(sizeof(char *) * second_line);
+void change_after_undo(long long first_line, long long second_line, char **lines_to_change) {
+    long long i = 0;
+    long long j = 0;
+    if (lines == NULL) {
+        lines = malloc(sizeof(char *) * second_line);
+        array_size = second_line;
+        while (lines_to_change[i] != NULL) {
+            lines[i] = malloc(sizeof(char) * strlen(lines_to_change[i]) + 1);
+            strcpy(lines[i], lines_to_change[i]);
+            i++;
+        }
+    } else {
+        if (array_size < second_line) {
+            lines = realloc(lines, sizeof(char *) * second_line);
+            array_size = second_line;
+        }
+        for (i = first_line - 1; lines_to_change[j] != NULL; i++) {
+            lines[i] = malloc(sizeof(char) * strlen(lines_to_change[j]) + 1);
+            strcpy(lines[i], lines_to_change[j]);
+            j++;
+        }
+    }
+}
+
+
+void change (long long first_line, long long second_line, text_editor *actual_state, text_editor *tail) {
+    max_undo = max_undo + 1;
+    if(max_redo != 0) {
+        *tail = *actual_state;
+        free(actual_state);
+    }
+    max_redo = 0;
+    char *new_line = malloc(sizeof(char) * NEW_LINE);
     long long i = 0;
     if (lines == NULL) {
         lines = malloc(sizeof(char *) * second_line);
-        fgets(new_line, INPUT_BUFFER_SIZE, stdin);
+        fgets(new_line, NEW_LINE, stdin);
         strtok(new_line, "\n");
         array_size = second_line;
         while (strcmp(new_line, ".") != 0) {
             lines[i] = malloc(sizeof(char) * strlen(new_line) + 1);
             strcpy(lines[i], new_line);
-            new_node->lines[i] = lines[i];
             i++;
-            fgets(new_line, INPUT_BUFFER_SIZE, stdin);
+            fgets(new_line, NEW_LINE, stdin);
             strtok(new_line, "\n");
-
         }
-        new_node->lines = lines;
-        new_node->next = NULL;
-        new_node->prec = NULL;
-        if (*head == NULL) {
-            *head = new_node;
-            *tail = *head;
-        } else {
-            (*tail)->next = new_node;
-            new_node->prec = *tail;
-
-            *tail = (*tail)->next; // Increment LAST to point to the new last node.
-        }
-    } else {
-        long long number_of_lines = second_line - first_line + 1;
-        new_node->lines = malloc(sizeof(char *) * number_of_lines);
-        fgets(new_line, INPUT_BUFFER_SIZE, stdin);
+    }
+    else {
+        fgets(new_line, NEW_LINE, stdin);
         strtok(new_line, "\n");
         if (array_size < second_line) {
             lines = realloc(lines, sizeof(char *) * second_line);
             array_size = second_line;
         }
-        int j = 0;
         for (i = first_line - 1; strcmp(new_line, ".") != 0; i++) {
             lines[i] = malloc(sizeof(char) * strlen(new_line) + 1);
             strcpy(lines[i], new_line);
-            new_node->lines[j] = lines[i];
-            j++;
-            fgets(new_line, INPUT_BUFFER_SIZE, stdin);
+            fgets(new_line, NEW_LINE, stdin);
             strtok(new_line, "\n");
-        }
-
-        new_node->lines = lines;
-        new_node->next = NULL;
-        new_node->prec = NULL;
-        if (*head == NULL) {
-            *head = new_node;
-            *tail = *head;
-        } else {
-            (*tail)->next = new_node;
-            new_node->prec = *tail;
-            *tail = (*tail)->next; // Increment LAST to point to the new last node.
         }
     }
     free(new_line);
-    free(new_node);
 }
 
 
-void delete(text_editor **head, text_editor **tail, long long first_line, long long second_line) {
-    text_editor *new_node = malloc(sizeof(text_editor));
-    new_node->second_line = second_line;
-    new_node->first_line = first_line;
-    new_node->command = 'd';
+void delete(long long first_line, long long second_line, text_editor *actual_state, text_editor *tail) {
+    max_undo = max_undo + 1;
+    if (max_redo != 0) {
+        *tail = *actual_state;
+        free(actual_state);
+    }
+    max_redo = 0;
     if (lines == NULL || first_line == 0 && second_line == 0 || first_line > array_size && second_line >= array_size) {
-        new_node->lines = malloc(sizeof(char *) * array_size);
-        memcpy(new_node->lines, lines, sizeof(char *) * array_size);
-        new_node->next = NULL;
-        new_node = *tail;
-        if (*head == NULL) {
-            *head = new_node;
-            *tail = *head;
-        } else {
-            (*tail)->next = new_node;
-            new_node->prec = *tail;
-            *tail = (*tail)->next; // Increment LAST to point to the new last node.
-        }
+        return;
     }
     else {
         long long i;
@@ -146,47 +175,96 @@ void delete(text_editor **head, text_editor **tail, long long first_line, long l
         else {
             if (first_line == second_line) {
                 for (i = first_line - 1; i + 1 < array_size; i++) {
-                    lines[i] = lines[i + 1];
+                    lines[i] = realloc(lines[i], sizeof(char ) * strlen(lines[i + 1]) + 1);
+                    strcpy(lines[i], lines[i + 1]);
                 }
                 array_size = array_size - 1;
             }
             else {
                 for (i = first_line - 1; i + (second_line - first_line + 1) < array_size; i++) {
-                    lines[i] = lines[i + (second_line - first_line + 1)];
+                    lines[i] = realloc(lines[i], sizeof(char ) * strlen(lines[i + (second_line - first_line + 1)]) + 1);
+                    strcpy(lines[i], lines[i + (second_line - first_line + 1)]);
                 }
-
                 array_size = array_size - (second_line - first_line + 1);
             }
-
-        }
-        new_node->lines = malloc(sizeof(char *) * array_size);
-        memcpy(new_node->lines, lines, sizeof(char *) * array_size);
-        new_node->next = NULL;
-        new_node->prec = NULL;
-        if (*head == NULL) {
-            *head = new_node;
-            *tail = *head;
-        } else {
-            (*tail)->next = new_node;
-            new_node->prec = *tail;
-            *tail = (*tail)->next; // Increment LAST to point to the new last node.
         }
     }
 }
 
-void undo(text_editor **tail, long long num_undo) {
-    text_editor *temp = *tail;
+void undo(long long a, text_editor **actual_state) {
+    max_redo = max_redo -a;
+    text_editor *curr = *actual_state;
+
     long long count = 0;
-        while(temp->command != 'd') {
-            temp = temp->prec;
+
+    if (-max_redo == max_undo) {
+        curr = NULL;
+        for(int i = 0; i < array_size; i++) {
+            lines[i] = NULL;
+        }
+        *actual_state = curr;
+    }
+
+    else {
+        // used to iterate over original list
+        while ((curr->command != 'd' || count < a) && curr != NULL) {
+            curr = curr->prec;
             count++;
         }
+        if (count == a) {
+            *actual_state = curr;
+            for (int i = 0; i < (*actual_state)->array_size; ++i) {
+                lines[i] = realloc(lines[i],sizeof(char) * strlen(curr->lines[i]) + 1);
+                strcpy(lines[i], (*actual_state)->lines[i]);
+            }
+            array_size = (*actual_state)->array_size;
+        } else {
+            while (count != a) {
+                curr = curr->next;
+                if (curr->command == 'c') {
+                    change_after_undo(curr->first_line, curr->second_line, curr->lines);
+                }
+                else {
+                    for (int i = 0; i < array_size; ++i) {
+                        lines[i] = malloc(sizeof(char) * strlen(curr->lines[i]) + 1);
+                        strcpy(lines[i], curr->lines[i]);
+                    }
 
+                }
+                count++;
+            }
+            *actual_state = curr;
+        }
+    }
 }
 
-void redo(text_editor **tail, long long num_redo) {
+void redo(long long num_redo, text_editor **actual_state, text_editor **head, text_editor **tail) {
+    text_editor *curr;
 
+    if (max_redo == -max_undo) {
+        curr = *head;
+    }
+    else {
+     curr = *actual_state;
+    }
+
+    while (num_redo) {
+        if (curr->command == 'c') {
+            change_after_undo(curr->first_line, curr->second_line, curr->lines);
+        } else if (curr->command == 'd') {
+            memcpy(lines, curr->lines, sizeof(char *) * array_size);
+        }
+        num_redo--;
+        curr = curr->next;
+    }
+    if(curr == NULL) {
+        *actual_state = *tail;
+    }
+    else {
+        *actual_state = curr;
+    }
 }
+
 
 char split_command(char* str, long long *num1, long long *num2){
     char* c = str;
@@ -204,48 +282,83 @@ char split_command(char* str, long long *num1, long long *num2){
     *c = '\0';
     char command = *(c-1);
     *(c-1) = '\0';
-    *num2 = atoi(str+comma+1);
+    if(command == 'q') {
+        return command;
+    }
+    if(command == 'u' || command == 'r') {
+        *num1 = atoi(str);
+    }
+    else {
+        *num2 = atoi(str + comma + 1);
+    }
     return command;
 }
 
 int main() {
-    char *inputBuffer = malloc(sizeof(char) * INPUT_BUFFER_SIZE);
-    text_editor *edU = NULL;
-    text_editor *tail = NULL;
+    char *inputBuffer = malloc(sizeof(char) * NEW_LINE);
+    text_editor *undo_head = NULL, *undo_tail = NULL, *actual_state;
+    long long x = 0;
     while (1) {
         if (fgets(inputBuffer, INPUT_BUFFER_SIZE, stdin)) {
             strtok(inputBuffer, "\n");
-            if (*inputBuffer == 'q') {
+            long long a, b;
+            char *s = malloc(sizeof(char) * strlen(inputBuffer) + 1);
+            strcpy(s, inputBuffer);
+            char c = split_command(s, &a, &b);
+            if (c == 'u' || c == 'r') {
+                while (c == 'u' || c == 'r') {
+                    if (c == 'u') {
+                        if(max_undo <= x + a) {
+                            x = max_undo;
+                        }
+                        else {
+                            x = x + a;
+                        }
+                    }
+                    if (c == 'r') {
+                        if(x - a > max_redo) {
+                            x = x - a;
+                        }
+                        else {
+                            x = max_redo;
+                        }
+                    }
+                    fgets(inputBuffer, INPUT_BUFFER_SIZE, stdin);
+                    strtok(inputBuffer, "\n");
+                    s = malloc(sizeof(char) * strlen(inputBuffer) + 1);
+                    strcpy(s, inputBuffer);
+                    c = split_command(s, &a, &b);
+                }
+                if (x > 0) {
+                    undo(x, &actual_state);
+                }
+                else if (x < 0) {
+                    x = - x;
+                    redo(x, &actual_state, &undo_head, &undo_tail);
+                }
+                x = 0;
+            }
+
+            if (c == 'q') {
                 free(inputBuffer);
-                free(edU);
+                free(undo_head);
                 free(lines);
-                free(tail);
+                free(undo_tail);
+                free(actual_state);
                 return 0;
             }
-            long long a, b;
-            if (inputBuffer[1] == 'u') {
-                a = atoi(&inputBuffer[0]);
-                undo (&tail, a);
+            if (c == 'c') {
+                change(a, b, actual_state, undo_tail);
+                insert_at_end(&undo_head, &undo_tail, c, a, b);
+                actual_state = undo_tail;
             }
-            else if (inputBuffer[1] == 'r') {
-                a = atoi(&inputBuffer[0]);
-                redo(&tail, a);
+            if (c == 'd') {
+                delete(a, b, actual_state, undo_tail);
+                insert_at_end(&undo_head, &undo_tail, c, a, b);
+                actual_state = undo_tail;
             }
-            else {
-                char *s = malloc(sizeof(char) * strlen(inputBuffer) + 1);
-                strcpy(s, inputBuffer);
-                char c = split_command(s, &a, &b);
-                //printf("Command: %c on lines from %d to %d\n", c, a, b);
-                if (c == 'c') {
-                    change(&edU, &tail, a, b);
-                }
-                if (c == 'd') {
-                    delete(&edU, &tail, a, b);
-                }
-                if (c == 'p') {
-                    print(a, b);
-                }
-                free(s);
+            if (c == 'p') {
+                print(a, b);
             }
         }
     }
