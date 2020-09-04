@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <assert.h>
 
 
 #define NEW_LINE 1026
@@ -24,6 +25,15 @@ long long max_undo = 0;
 long long max_redo = 0;
 char **lines = NULL;
 bool insert;
+
+
+void free_all(text_editor *list) {
+    while(list->next != NULL) {
+        list = list->next;
+        free(list->prec);
+    }
+    free(list);
+}
 
 
 void insert_at_end(text_editor **headref, text_editor **lastref, char c, long long a, long long b) {
@@ -114,16 +124,10 @@ void change_after_undo(long long first_line, long long second_line, char **lines
 }
 
 
-void change (long long first_line, long long second_line, text_editor *head, text_editor *actual_state, text_editor *tail) {
+void change (long long first_line, long long second_line, text_editor *actual_state) {
     max_undo = max_undo + 1;
     if(max_redo != 0) {
-        if(actual_state == NULL) {
-            head = actual_state;
-        }
-        else {
-            tail = actual_state;
-        }
-        free(actual_state);
+        free_all(actual_state);
     }
     max_redo = 0;
     char *new_line = malloc(sizeof(char) * NEW_LINE);
@@ -167,15 +171,10 @@ void change (long long first_line, long long second_line, text_editor *head, tex
 }
 
 
-void delete(long long first_line, long long second_line, text_editor *head, text_editor *actual_state, text_editor *tail) {
+void delete(long long first_line, long long second_line, text_editor *actual_state) {
     max_undo = max_undo + 1;
     if (max_redo != 0) {
-        if(actual_state == NULL) {
-            actual_state = head;
-        }
-        else {
-            tail = actual_state;
-        }
+        free_all(actual_state);
     }
     max_redo = 0;
     if (lines == NULL || first_line == 0 && second_line == 0 || first_line > array_size && second_line >= array_size) {
@@ -279,6 +278,7 @@ void redo(long long num_redo, text_editor **actual_state, text_editor *head) {
 
     while(num_redo) {
         curr = curr->next;
+        assert(curr != NULL);
 
         if(curr->command == 'd' || curr->first_line <= curr->array_size) {
             lines = realloc(lines, sizeof(char *) * curr->array_size);
@@ -377,12 +377,12 @@ int main() {
                 return 0;
             }
             if (c == 'c') {
-                change(a, b, undo_head, actual_state, undo_tail);
+                change(a, b, actual_state);
                 insert_at_end(&undo_head, &undo_tail, c, a, b);
                 actual_state = undo_tail;
             }
             if (c == 'd') {
-                delete(a, b, undo_head, actual_state, undo_tail);
+                delete(a, b, actual_state);
                 insert_at_end(&undo_head, &undo_tail, c, a, b);
                 actual_state = undo_tail;
             }
