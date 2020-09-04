@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
+
 
 #define NEW_LINE 1026
 #define INPUT_BUFFER_SIZE 100
@@ -9,6 +11,7 @@ typedef struct text {
     long long first_line;
     long long second_line;
     long long array_size;
+    bool boolean;
     char command;
     char **lines;
     struct text *next;
@@ -20,6 +23,7 @@ long long array_size = 0;
 long long max_undo = 0;
 long long max_redo = 0;
 char **lines = NULL;
+bool insert;
 
 
 void insert_at_end(text_editor **headref, text_editor **lastref, char c, long long a, long long b) {
@@ -30,7 +34,8 @@ void insert_at_end(text_editor **headref, text_editor **lastref, char c, long lo
     temp->second_line = b;
     temp->array_size = array_size;
     temp->next = NULL;
-    if(c == 'd' || b < array_size) {
+    if(c == 'd' || insert == true) {
+        temp->boolean = true;
         temp->lines = malloc(sizeof(char *) * array_size);
         for (i = 0; i < array_size; i++) {
             temp->lines[i] = lines[i];
@@ -38,6 +43,7 @@ void insert_at_end(text_editor **headref, text_editor **lastref, char c, long lo
     }
 
     else {
+        temp->boolean = true;
         temp->lines = malloc(sizeof(char *) * (b - a + 1));
         for (i = a - 1; i < b; i++) {
             temp->lines[j] = lines[i];
@@ -122,11 +128,15 @@ void change (long long first_line, long long second_line, text_editor *head, tex
     max_redo = 0;
     char *new_line = malloc(sizeof(char) * NEW_LINE);
     long long i = 0;
+
+    if(first_line <= array_size) {
+        insert = true;
+    }
+
     if (lines == NULL) {
         lines = malloc(sizeof(char *) * second_line);
         fgets(new_line, NEW_LINE, stdin);
         strtok(new_line, "\n");
-        array_size = second_line;
         while (strcmp(new_line, ".") != 0) {
             lines[i] = malloc(sizeof(char) * strlen(new_line) + 1);
             strcpy(lines[i], new_line);
@@ -134,6 +144,7 @@ void change (long long first_line, long long second_line, text_editor *head, tex
             fgets(new_line, NEW_LINE, stdin);
             strtok(new_line, "\n");
         }
+        array_size = second_line;
     }
     else {
         fgets(new_line, NEW_LINE, stdin);
@@ -204,115 +215,84 @@ void delete(long long first_line, long long second_line, text_editor *head, text
 }
 
 void undo(long long a, text_editor **actual_state, text_editor *head) {
-    text_editor *curr;
-
-    max_undo = max_undo - a;
-    max_redo = max_redo - a;
+    text_editor *curr = *actual_state;
 
     long long count = 0;
 
-    // used to iterate over original list
-    curr = *actual_state;
-    while (count < a) {
+    while (count != a) {
         curr = curr->prec;
         count++;
     }
-    if (curr == NULL) {
-        curr = head;
-        *actual_state = curr;
-        for (int i = 0; i < array_size; ++i) {
+
+    if(curr == NULL) {
+        for(int i = 0; i < array_size; i++) {
             lines[i] = NULL;
         }
     }
-
-    else if (curr->command == 'd') {
-        lines = malloc(sizeof(char *) * curr->array_size);
-        for (int i = 0; i < curr->array_size; ++i) {
-            lines[i] = curr->lines[i];
-        }
-        array_size = curr->array_size;
-        *actual_state = curr;
-    }
-
-
-    else if (curr->command != 'd') {
-        while (curr != NULL && curr->command != 'd') {
-            curr = curr->prec;
-            count++;
-        }
-        if (curr == NULL) {
-            curr = head;
-            *actual_state = curr;
-            for (int i = 0; i < array_size; ++i) {
-                lines[i] = NULL;
-            }
-        } else {
-            *actual_state = curr;
-            array_size = (*actual_state)->second_line;
-            if (count == a) {
-                *actual_state = curr;
-                lines = realloc(lines, sizeof(char *) * (*actual_state)->array_size);
-                for (int i = 0; i < (*actual_state)->array_size; ++i) {
-                    lines[i] = (*actual_state)->lines[i];
-                }
-                array_size = (*actual_state)->array_size;
-            } else {
-                while (count != -(max_redo) - 1) {
-                    if (curr->command == 'c') {
-                        change_after_undo(curr->first_line, curr->second_line, curr->lines);
-                    } else {
-                        free(lines);
-                        lines = malloc(sizeof(char *) * curr->array_size);
-                        if (curr->lines[0] != NULL) {
-                            for (int i = 0; i < array_size; ++i) {
-                                lines[i] = curr->lines[i];
-                            }
-                        } else {
-                            lines = NULL;
-                        }
-                    }
-                    count--;
-                    curr = curr->next;
-                }
-                *actual_state = curr;
-            }
-
-        }
-    }
-}
-
-void redo(long long num_redo, text_editor **actual_state, text_editor **head, text_editor **tail) {
-    text_editor *curr;
-
-    if(max_undo == 0) {
-        curr = *head;
-    }
-
     else {
-     curr = *actual_state;
-    }
-
-
-    while (num_redo) {
-        if (curr->command == 'c') {
-            change_after_undo(curr->first_line, curr->second_line, curr->lines);
-        } else if (curr->command == 'd') {
+        if(curr->command == 'd' || curr->boolean == true) {
             lines = malloc(sizeof(char *) * curr->array_size);
             for (int i = 0; i < curr->array_size; i++) {
                 lines[i] = curr->lines[i];
             }
             array_size = curr->array_size;
+        } else {
+            while(curr->command != 'd' && curr->first_line > curr->array_size && curr != NULL) {
+                curr = curr->prec;
+            }
+            if(curr == NULL) {
+                lines = NULL;
+                array_size = 0;
+            }
+            else {
+                for (int i = 0; i < curr->array_size; i++) {
+                    lines[i] = curr->lines[i];
+                }
+                array_size = curr->array_size;
+            }
+            while (count != a) {
+                change_after_undo(curr->first_line, curr->second_line, curr->lines);
+                count++;
+            }
         }
+    }
+    *actual_state = curr;
+    max_undo = max_undo - a;
+    max_redo = max_redo - a;
+}
+
+void redo(long long num_redo, text_editor **actual_state, text_editor *head) {
+    text_editor *curr = *actual_state;
+
+    max_redo = max_redo + num_redo;
+    max_undo = max_undo + num_redo;
+
+    if (curr == NULL) {
+        curr = head;
+        lines = malloc(sizeof(char *)* curr->array_size);
+        for (int i = 0; i < curr->array_size; ++i) {
+            lines[i] = curr->lines[i];
+        }
+        array_size = curr->array_size;
         num_redo--;
-        curr = curr->next;
-    }
-    if(curr == NULL) {
-        *actual_state = *tail;
-    }
-    else {
-        *actual_state = curr;
     }
 
+    while(num_redo) {
+        curr = curr->next;
+
+        if(curr->command == 'd' || curr->first_line <= curr->array_size) {
+            lines = realloc(lines, sizeof(char *) * curr->array_size);
+            for (int i = 0; i < curr->array_size; ++i) {
+                lines[i] = curr->lines[i];
+            }
+            array_size = curr->array_size;
+        } else {
+            change_after_undo(curr->first_line, curr->second_line, curr->lines);
+        }
+
+        num_redo--;
+    }
+    *actual_state = curr;
 }
 
 
@@ -384,9 +364,7 @@ int main() {
                 }
                 else if (x < 0) {
                     x = - x;
-                    redo(x, &actual_state, &undo_head, &undo_tail);
-                    max_undo = max_undo + x;
-                    max_redo = max_redo + x;
+                    redo(x, &actual_state, undo_head);
                 }
                 x = 0;
             }
