@@ -28,18 +28,20 @@ Second Line
 #### Deletion of a line
 To delete lines, it is needed to use the following format:
 ```ind1,ind2d```
-**NOTE**: if you try to delete lines that doesn't exists, the command will have no effect.
+_**NOTE**: if you try to delete lines that doesn't exists, the command will have no effect.
 
 #### Printing lines
 To print a group of lines, it is needed to use the following format:
 ```
 ind1,ind2p
 ```
-**NOTE**: if the line doesn't exists, it will print a '.'.
+_**NOTE**: if the line doesn't exists, it will print a '.'.
+
 #### Undo action
 In order to go back to a previous version, you can do the following command 
 ``ind1u``
 where ind1 is the number of version that you want to go back.
+
 #### Redo Action
 Like undo, the command to do a redo is the following one:
 ``ind1r``
