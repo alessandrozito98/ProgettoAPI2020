@@ -3,7 +3,7 @@
 Speficic document can be found [here](https://martinenghi.faculty.polimi.it/courses/api/ProvaFinale2020specifica.pdf)
 
 ## edU, or ed multiplies Undo 
-*This project has been developed as part of the "Algoritmi e Principi dell'Informatica" course at [Politecnico di Milano](https://www.polimi.it/).*
+*This project has been developed as part of the "Algoritmi e Principi dell'Informatica" course at [Politecnico di Milano](https://www.polimi.it/).* It has been evaluated with 29/30
 
 A C program that reprents a text editor, where you can add, remove, print lines and do undo or redo actions.
 
