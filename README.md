@@ -1,4 +1,7 @@
 # ProgettoAPI2020
+
+Speficic document can be found [here](https://martinenghi.faculty.polimi.it/courses/api/ProvaFinale2020specifica.pdf)
+
 ## edU, or ed multiplies Undo 
 *This project has been developed as part of the "Algoritmi e Principi dell'Informatica" course at [Politecnico di Milano](https://www.polimi.it/).*
 
@@ -92,8 +95,3 @@ q
  new second line
  third line
  ```
- 
- 
- 
-## Utilities
-Speficic document can be found [here](https://martinenghi.faculty.polimi.it/courses/api/ProvaFinale2020specifica.pdf)
