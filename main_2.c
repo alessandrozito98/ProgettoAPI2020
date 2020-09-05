@@ -27,16 +27,30 @@ char **lines = NULL;
 bool insert;
 
 
-void free_all(text_editor *list) {
-    while(list->next != NULL) {
-        list = list->next;
-        free(list->prec);
+void free_all(text_editor *list, text_editor *head) {
+
+    if (list == NULL) {
+        while (head->next != NULL) {
+            head = (head)->next;
+            free(head->prec);
+        }
+        free(head);
+        head = NULL;
+    } else {
+        text_editor *delete;
+        delete = list->next;
+    while (delete->next != NULL) {
+        delete = delete->next;
+        free(delete->prec);
     }
-    free(list);
+    free(delete);
+        list->next = NULL;
+    }
+
 }
 
 
-void insert_at_end(text_editor **headref, text_editor **lastref, char c, long long a, long long b) {
+void insert_at_end(text_editor **headref, text_editor **lastref, text_editor **actual_state, char c, long long a, long long b) {
     long long i, j = 0;
     text_editor *temp = malloc(sizeof(text_editor));
     temp->command = c;
@@ -53,7 +67,7 @@ void insert_at_end(text_editor **headref, text_editor **lastref, char c, long lo
     }
 
     else {
-        temp->boolean = true;
+        temp->boolean = false;
         temp->lines = malloc(sizeof(char *) * (b - a + 1));
         for (i = a - 1; i < b; i++) {
             temp->lines[j] = lines[i];
@@ -61,6 +75,7 @@ void insert_at_end(text_editor **headref, text_editor **lastref, char c, long lo
         }
     }
     if(*headref == NULL) { //Checks if the list is empty.
+        temp->prec = NULL;
         *headref = temp; // Places the address of the new node in HEAD pointer.
         *lastref = temp; // Places the address of the new node in LAST pointer.
     }
@@ -70,6 +85,7 @@ void insert_at_end(text_editor **headref, text_editor **lastref, char c, long lo
         temp->prec = *lastref;
         *lastref = (*lastref)->next;// Increment LAST to point to the new last node.
     }
+    *actual_state = *lastref;
 }
 
 
@@ -124,10 +140,14 @@ void change_after_undo(long long first_line, long long second_line, char **lines
 }
 
 
-void change (long long first_line, long long second_line, text_editor *actual_state) {
+void change (long long first_line, long long second_line, text_editor **head, text_editor *actual_state, text_editor **lastref) {
     max_undo = max_undo + 1;
     if(max_redo != 0) {
-        free_all(actual_state);
+        free_all(actual_state, *head);
+        if(actual_state == NULL) {
+            *head = actual_state;
+        }
+        *lastref = actual_state;
     }
     max_redo = 0;
     char *new_line = malloc(sizeof(char) * NEW_LINE);
@@ -171,10 +191,14 @@ void change (long long first_line, long long second_line, text_editor *actual_st
 }
 
 
-void delete(long long first_line, long long second_line, text_editor *actual_state) {
+void delete(long long first_line, long long second_line, text_editor **head, text_editor *actual_state, text_editor **lastref) {
     max_undo = max_undo + 1;
     if (max_redo != 0) {
-        free_all(actual_state);
+        free_all(actual_state, *head);
+        if(actual_state == NULL) {
+            *head = NULL;
+        }
+        *lastref = actual_state;
     }
     max_redo = 0;
     if (lines == NULL || first_line == 0 && second_line == 0 || first_line > array_size && second_line >= array_size) {
@@ -213,7 +237,7 @@ void delete(long long first_line, long long second_line, text_editor *actual_sta
     }
 }
 
-void undo(long long a, text_editor **actual_state, text_editor *head) {
+void undo(long long a, text_editor **actual_state) {
     text_editor *curr = *actual_state;
 
     long long count = 0;
@@ -236,7 +260,7 @@ void undo(long long a, text_editor **actual_state, text_editor *head) {
             }
             array_size = curr->array_size;
         } else {
-            while(curr->command != 'd' && curr->first_line > curr->array_size && curr != NULL) {
+            while(curr->command != 'd' && curr->boolean == false && curr != NULL) {
                 curr = curr->prec;
             }
             if(curr == NULL) {
@@ -252,6 +276,7 @@ void undo(long long a, text_editor **actual_state, text_editor *head) {
             while (count != a) {
                 change_after_undo(curr->first_line, curr->second_line, curr->lines);
                 count++;
+
             }
         }
     }
@@ -278,9 +303,7 @@ void redo(long long num_redo, text_editor **actual_state, text_editor *head) {
 
     while(num_redo) {
         curr = curr->next;
-        assert(curr != NULL);
-
-        if(curr->command == 'd' || curr->first_line <= curr->array_size) {
+        if(curr->command == 'd' || curr->boolean == true) {
             lines = realloc(lines, sizeof(char *) * curr->array_size);
             for (int i = 0; i < curr->array_size; ++i) {
                 lines[i] = curr->lines[i];
@@ -338,18 +361,16 @@ int main() {
             if (c == 'u' || c == 'r') {
                 while (c == 'u' || c == 'r') {
                     if (c == 'u') {
-                        if(max_undo <= x + a) {
+                        if (max_undo <= x + a) {
                             x = max_undo;
-                        }
-                        else {
+                        } else {
                             x = x + a;
                         }
                     }
                     if (c == 'r') {
-                        if(x - a > max_redo) {
+                        if (x - a > max_redo) {
                             x = x - a;
-                        }
-                        else {
+                        } else {
                             x = max_redo;
                         }
                     }
@@ -360,10 +381,9 @@ int main() {
                     c = split_command(s, &a, &b);
                 }
                 if (x > 0) {
-                    undo(x, &actual_state, undo_head);
-                }
-                else if (x < 0) {
-                    x = - x;
+                    undo(x, &actual_state);
+                } else if (x < 0) {
+                    x = -x;
                     redo(x, &actual_state, undo_head);
                 }
                 x = 0;
@@ -377,13 +397,13 @@ int main() {
                 return 0;
             }
             if (c == 'c') {
-                change(a, b, actual_state);
-                insert_at_end(&undo_head, &undo_tail, c, a, b);
+                change(a, b, &undo_head, actual_state, &undo_tail);
+                insert_at_end(&undo_head, &undo_tail, &actual_state, c, a, b);
                 actual_state = undo_tail;
             }
             if (c == 'd') {
-                delete(a, b, actual_state);
-                insert_at_end(&undo_head, &undo_tail, c, a, b);
+                delete(a, b, &undo_head, actual_state, &undo_tail);
+                insert_at_end(&undo_head, &undo_tail, &actual_state, c, a, b);
                 actual_state = undo_tail;
             }
             if (c == 'p') {
