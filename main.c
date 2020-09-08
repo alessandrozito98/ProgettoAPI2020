@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include <assert.h>
 
 
 #define NEW_LINE 1026
@@ -237,7 +236,7 @@ void delete(long long first_line, long long second_line, text_editor **head, tex
     }
 }
 
-void undo(long long a, text_editor **actual_state) {
+void undo(long long a, text_editor **actual_state, text_editor *head) {
     text_editor *curr = *actual_state;
 
     long long count = 0;
@@ -260,12 +259,17 @@ void undo(long long a, text_editor **actual_state) {
             }
             array_size = curr->array_size;
         } else {
-            while(curr->command != 'd' && curr->boolean == false && curr != NULL) {
+            while(curr != NULL && curr->command != 'd' && curr->boolean == false) {
                 curr = curr->prec;
+                count++;
             }
             if(curr == NULL) {
-                lines = NULL;
                 array_size = 0;
+                curr = head;
+                for(int i = 0; i < array_size; i++) {
+                    lines[i] = NULL;
+                }
+                lines = NULL;
             }
             else {
                 for (int i = 0; i < curr->array_size; i++) {
@@ -275,7 +279,7 @@ void undo(long long a, text_editor **actual_state) {
             }
             while (count != a) {
                 change_after_undo(curr->first_line, curr->second_line, curr->lines);
-                count++;
+                count--;
 
             }
         }
@@ -381,7 +385,7 @@ int main() {
                     c = split_command(s, &a, &b);
                 }
                 if (x > 0) {
-                    undo(x, &actual_state);
+                    undo(x, &actual_state, undo_head);
                 } else if (x < 0) {
                     x = -x;
                     redo(x, &actual_state, undo_head);
@@ -390,10 +394,6 @@ int main() {
             }
 
             if (c == 'q') {
-                free(s);
-                free(undo_head);
-                free(inputBuffer);
-                free(lines);
                 return 0;
             }
             if (c == 'c') {
@@ -409,7 +409,6 @@ int main() {
             if (c == 'p') {
                 print(a, b);
             }
-            free(s);
         }
     }
 }

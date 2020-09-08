@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
+#include <assert.h>
+
 
 #define NEW_LINE 1026
 #define INPUT_BUFFER_SIZE 100
@@ -9,50 +12,49 @@ typedef struct text {
     long long first_line;
     long long second_line;
     long long array_size;
+    bool boolean;
     char command;
     char **lines;
-    struct text *next;
-    struct text *prec;
 }text_editor;
 
-
-long long array_size = 0;
-long long max_undo = 0;
-long long max_redo = 0;
+bool insert;
 char **lines = NULL;
+long long array_size = 0, max_undo = 0, max_redo = 0, complete_states_size = 0;
+long long *complete_states;
+text_editor *states = NULL;
+
+void free_all(long long version) {
+    for(long long i = version; i < max_undo - max_redo; i++) {
+        free(&states[i]);
+    }
+    (&states)[max_undo + 1] = NULL;
+}
 
 
-void insert_at_end(text_editor **headref, text_editor **lastref, char c, long long a, long long b) {
-    long long i, j = 0;
-    text_editor *temp = malloc(sizeof(text_editor));
-    temp->command = c;
-    temp->first_line = a;
-    temp->second_line = b;
-    temp->array_size = array_size;
-    temp->next = NULL;
-    if(c == 'd' || b < array_size) {
-        temp->lines = malloc(sizeof(char *) * array_size);
+void insert_at_end(char c, long long a, long long b) {
+    long long i = 0, j = 0;
+    states = realloc(states, sizeof(text_editor) * max_undo);
+    states[max_undo - 1].command = c;
+    states[max_undo - 1].first_line = a;
+    states[max_undo - 1].second_line = b;
+    states[max_undo - 1].array_size = array_size;
+    if(c == 'd' || insert == true) {
+        complete_states = realloc(complete_states, complete_states_size + 1);
+        complete_states_size = max_undo - 1;
+        states[max_undo - 1].boolean = true;
+        states[max_undo - 1].lines = malloc(sizeof(char *) * array_size);
         for (i = 0; i < array_size; i++) {
-            temp->lines[i] = lines[i];
+            states[max_undo - 1].lines[i] = lines[i];
         }
     }
 
     else {
-        temp->lines = malloc(sizeof(char *) * (b - a + 1));
+        states[max_undo - 1].boolean = false;
+        states[max_undo - 1].lines = malloc(sizeof(char *) * (b - a + 1));
         for (i = a - 1; i < b; i++) {
-            temp->lines[j] = lines[i];
+            states[max_undo - 1].lines[j] = lines[i];
             j++;
         }
-    }
-    if(*headref == NULL) { //Checks if the list is empty.
-        *headref = temp; // Places the address of the new node in HEAD pointer.
-        *lastref = temp; // Places the address of the new node in LAST pointer.
-    }
-    else {
-        /* If the list is not empty, then make the next pointer of the present last node point to the new node*/
-        (*lastref)->next = temp;
-        temp->prec = *lastref;
-        *lastref = (*lastref)->next;// Increment LAST to point to the new last node.
     }
 }
 
@@ -108,25 +110,23 @@ void change_after_undo(long long first_line, long long second_line, char **lines
 }
 
 
-void change (long long first_line, long long second_line, text_editor *head, text_editor *actual_state, text_editor *tail) {
-    max_undo = max_undo + 1;
+void change (long long first_line, long long second_line) {
     if(max_redo != 0) {
-        if(actual_state == NULL) {
-            head = actual_state;
-        }
-        else {
-            tail = actual_state;
-        }
-        free(actual_state);
+        free_all(max_undo + 1);
     }
+    max_undo = max_undo + 1;
     max_redo = 0;
     char *new_line = malloc(sizeof(char) * NEW_LINE);
     long long i = 0;
+
+    if(first_line <= array_size) {
+        insert = true;
+    }
+
     if (lines == NULL) {
         lines = malloc(sizeof(char *) * second_line);
         fgets(new_line, NEW_LINE, stdin);
         strtok(new_line, "\n");
-        array_size = second_line;
         while (strcmp(new_line, ".") != 0) {
             lines[i] = malloc(sizeof(char) * strlen(new_line) + 1);
             strcpy(lines[i], new_line);
@@ -134,6 +134,7 @@ void change (long long first_line, long long second_line, text_editor *head, tex
             fgets(new_line, NEW_LINE, stdin);
             strtok(new_line, "\n");
         }
+        array_size = second_line;
     }
     else {
         fgets(new_line, NEW_LINE, stdin);
@@ -156,16 +157,12 @@ void change (long long first_line, long long second_line, text_editor *head, tex
 }
 
 
-void delete(long long first_line, long long second_line, text_editor *head, text_editor *actual_state, text_editor *tail) {
-    max_undo = max_undo + 1;
+void delete(long long first_line, long long second_line) {
+
     if (max_redo != 0) {
-        if(actual_state == NULL) {
-            actual_state = head;
-        }
-        else {
-            tail = actual_state;
-        }
+        free_all(max_undo + 1);
     }
+    max_undo = max_undo + 1;
     max_redo = 0;
     if (lines == NULL || first_line == 0 && second_line == 0 || first_line > array_size && second_line >= array_size) {
         return;
@@ -203,116 +200,67 @@ void delete(long long first_line, long long second_line, text_editor *head, text
     }
 }
 
-void undo(long long a, text_editor **actual_state, text_editor *head) {
-    text_editor *curr;
+void undo(long long a) {
+    long long i;
 
-    max_undo = max_undo - a;
-    max_redo = max_redo - a;
-
-    long long count = 0;
-
-    // used to iterate over original list
-    curr = *actual_state;
-    while (count < a) {
-        curr = curr->prec;
-        count++;
-    }
-    if (curr == NULL) {
-        curr = head;
-        *actual_state = curr;
-        for (int i = 0; i < array_size; ++i) {
+    if(a == max_undo) {
+        for(i = 0; i < array_size; i++) {
             lines[i] = NULL;
         }
     }
+    else {
 
-    else if (curr->command == 'd') {
-        lines = malloc(sizeof(char *) * curr->array_size);
-        for (int i = 0; i < curr->array_size; ++i) {
-            lines[i] = curr->lines[i];
-        }
-        array_size = curr->array_size;
-        *actual_state = curr;
-    }
-
-
-    else if (curr->command != 'd') {
-        while (curr != NULL && curr->command != 'd') {
-            curr = curr->prec;
-            count++;
-        }
-        if (curr == NULL) {
-            curr = head;
-            *actual_state = curr;
-            for (int i = 0; i < array_size; ++i) {
-                lines[i] = NULL;
+        if(states[max_undo - a].command == 'd' || states[max_undo - a].boolean == true) {
+            lines = malloc(sizeof(char *) * states[max_undo - a].array_size);
+            for (i = 0; i < states[max_undo - 1].array_size; i++) {
+                lines[i] = states[max_undo - 1].lines[i];
             }
+            array_size = states[max_undo - 1].array_size;
         } else {
-            *actual_state = curr;
-            array_size = (*actual_state)->second_line;
-            if (count == a) {
-                *actual_state = curr;
-                lines = realloc(lines, sizeof(char *) * (*actual_state)->array_size);
-                for (int i = 0; i < (*actual_state)->array_size; ++i) {
-                    lines[i] = (*actual_state)->lines[i];
-                }
-                array_size = (*actual_state)->array_size;
-            } else {
-                while (count != -(max_redo) - 1) {
-                    if (curr->command == 'c') {
-                        change_after_undo(curr->first_line, curr->second_line, curr->lines);
-                    } else {
-                        free(lines);
-                        lines = malloc(sizeof(char *) * curr->array_size);
-                        if (curr->lines[0] != NULL) {
-                            for (int i = 0; i < array_size; ++i) {
-                                lines[i] = curr->lines[i];
-                            }
-                        } else {
-                            lines = NULL;
-                        }
-                    }
-                    count--;
-                    curr = curr->next;
-                }
-                *actual_state = curr;
+            long long count = max_undo - a;
+            while (count >= 0 && states[count].command != 'd' && states[count].boolean != true) {
+                count--;
             }
-
+            if (count < 0) {
+                for (i = 0; i < states[max_undo - 1].array_size; i++) {
+                    lines[i] = states[max_undo - 1].lines[i];
+                }
+                array_size = 0;
+            }
+            else {
+                for (i = 0; i < states[max_undo - 1].array_size; i++) {
+                    lines[i] = states[count].lines[i];
+                }
+                while(count != max_undo - a) {
+                    change_after_undo(states[count].first_line, states[count].second_line, states[count].lines);
+                    count++;
+                }
+            }
         }
     }
+    max_undo = max_undo - a;
+    max_redo = max_redo - a;
 }
 
-void redo(long long num_redo, text_editor **actual_state, text_editor **head, text_editor **tail) {
-    text_editor *curr;
+void redo(long long num_redo) {
+    long long i = 0;
 
-    if(max_undo == 0) {
-        curr = *head;
-    }
+    max_redo = max_redo + num_redo;
+    max_undo = max_undo + num_redo;
 
-    else {
-     curr = *actual_state;
-    }
-
-
-    while (num_redo) {
-        if (curr->command == 'c') {
-            change_after_undo(curr->first_line, curr->second_line, curr->lines);
-        } else if (curr->command == 'd') {
-            lines = malloc(sizeof(char *) * curr->array_size);
-            for (int i = 0; i < curr->array_size; i++) {
-                lines[i] = curr->lines[i];
-            }
-            array_size = curr->array_size;
+    if (states[num_redo - 1].boolean == true) {
+        lines = realloc(lines, sizeof(char *) * states[num_redo - 1].array_size);
+        for (i = 0; i < states[num_redo - 1].array_size; ++i) {
+            lines[i] = states[num_redo - 1].lines[i];
         }
-        num_redo--;
-        curr = curr->next;
+    } else {
+        while (!(complete_states[i] < num_redo - 1 && complete_states[i + 1] > num_redo - 1)) {
+            i++;
+        }
+        for (long long j = 0; j < states[i - 1].array_size; ++j) {
+            lines[j] = states[i].lines[j];
+        }
     }
-    if(curr == NULL) {
-        *actual_state = *tail;
-    }
-    else {
-        *actual_state = curr;
-    }
-
 }
 
 
@@ -346,7 +294,6 @@ char split_command(char* str, long long *num1, long long *num2){
 
 int main() {
     char *inputBuffer = malloc(sizeof(char) * NEW_LINE);
-    text_editor *undo_head = NULL, *undo_tail = NULL, *actual_state;
     long long x = 0;
     while (1) {
         if (fgets(inputBuffer, INPUT_BUFFER_SIZE, stdin)) {
@@ -358,18 +305,16 @@ int main() {
             if (c == 'u' || c == 'r') {
                 while (c == 'u' || c == 'r') {
                     if (c == 'u') {
-                        if(max_undo <= x + a) {
+                        if (max_undo <= x + a) {
                             x = max_undo;
-                        }
-                        else {
+                        } else {
                             x = x + a;
                         }
                     }
                     if (c == 'r') {
-                        if(x - a > max_redo) {
+                        if (x - a > max_redo) {
                             x = x - a;
-                        }
-                        else {
+                        } else {
                             x = max_redo;
                         }
                     }
@@ -380,33 +325,28 @@ int main() {
                     c = split_command(s, &a, &b);
                 }
                 if (x > 0) {
-                    undo(x, &actual_state, undo_head);
-                }
-                else if (x < 0) {
-                    x = - x;
-                    redo(x, &actual_state, &undo_head, &undo_tail);
-                    max_undo = max_undo + x;
-                    max_redo = max_redo + x;
+                    undo(x);
+                } else if (x < 0) {
+                    x = -x;
+                    redo(x);
                 }
                 x = 0;
             }
 
             if (c == 'q') {
                 free(s);
-                free(undo_head);
                 free(inputBuffer);
                 free(lines);
                 return 0;
             }
             if (c == 'c') {
-                change(a, b, undo_head, actual_state, undo_tail);
-                insert_at_end(&undo_head, &undo_tail, c, a, b);
-                actual_state = undo_tail;
+                change(a, b);
+                insert_at_end(c, a, b);
             }
             if (c == 'd') {
-                delete(a, b, undo_head, actual_state, undo_tail);
-                insert_at_end(&undo_head, &undo_tail, c, a, b);
-                actual_state = undo_tail;
+                delete(a, b);
+                insert_at_end(c, a, b);
+
             }
             if (c == 'p') {
                 print(a, b);
