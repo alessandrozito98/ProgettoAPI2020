@@ -99,3 +99,59 @@ q
  new second line
  third line
  ```
+
+### Testing Result
+
+##### WriteOnly
+
+Limits: 7,000 s - 3 GiB
+
+* Subtask 2: 0,161s - 
+* Subtask 3: 0,210s - 
+* Subtask 4: 0,263s -
+
+##### Bulkreads
+
+Limits: 7,000 s - 3 GiB
+
+* Subtask 2: 0,375s - 
+* Subtask 3: 0,501s - 
+* Subtask 4: 0,632s
+
+##### TimeForAChange
+
+Limits: 7,000 s - 3 GiB
+
+* Subtask 2: 0,480s - 
+* Subtask 3: 0,714s - 
+* Subtask 4: 0,958s -
+
+##### Rollingback
+
+Limits: 2,100 s - 550 MiB
+
+* Subtask 2: 1,191s - 
+* Subtask 3: 1,958s - 
+* Subtask 4: Execution killed (time out).
+
+##### AlteringHistory
+
+Limits: 2,100 s - 400 MiB
+
+* Subtask 2: 0,613s - 
+* Subtask 3: 0,856s - 
+* Subtask 4: 1,158s -
+
+##### Rollercoaster
+
+Limits: 2,700 s - 1,03 GiB
+
+* Subtask 2: 0,517s - 
+* Subtask 3: 0,750s - 
+* Subtask 4: 1,002s -
+
+##### Lode
+
+Limits: 2,000 s - 340 MiB
+
+* Subtask 1: 
