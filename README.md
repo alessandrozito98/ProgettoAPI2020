@@ -1,18 +1,18 @@
 # ProgettoAPI2020
 
-Description of the project can be found [here](https://martinenghi.faculty.polimi.it/courses/api/ProvaFinale2020.pdf).
+Description of the project can be found [here](https://github.com/alessandrozito98/ProgettoAPI2020/blob/master/Specific%20Documents/ProvaFinale2020.pdf).
 
-Speficic document can be found [here](https://martinenghi.faculty.polimi.it/courses/api/ProvaFinale2020specifica.pdf).
+Specific document can be found [here](https://github.com/alessandrozito98/ProgettoAPI2020/blob/master/Specific%20Documents/ProvaFinale2020specifica.pdf).
 
 ## edU, or ed multiplies Undo 
 *This project has been developed as part of the "Algoritmi e Principi dell'Informatica" course at [Politecnico di Milano](https://www.polimi.it/).* It has been evaluated "29/30".
 
-A C program that reprents a text editor, where you can add, remove, print lines and do undo or redo actions.
+A C program that represents a text editor, where you can add, remove, print lines and do undo or redo actions.
 
 ### Input Format
 The program expects its input from stdio with the following format.
 
-_**NOTE**_: MAX lenght of a line: 1024. Commands are considered correct.
+_**NOTE**_: MAX length of a line: 1024. Commands are considered correct.
 #### Addition of lines
 To add a line to the editor, it is needed to write the lines after the ```ind1,ind2c``` instruction, and after the last line, write a '.'.
 
