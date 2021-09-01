@@ -107,7 +107,9 @@ The testing platform was divided in public and private tests. Public tests can b
 However, i also tested my program using a test generator written by me and other students. The original repo can be found [here](https://github.com/AlessioColombo/ProgettoAPI2020_GeneratoreTest).
 
 
-##### WriteOnly
+#### Private Testing Results
+
+###### WriteOnly
 
 Limits: 7,000 s - 3 GiB
 
@@ -115,7 +117,7 @@ Limits: 7,000 s - 3 GiB
 * Subtask 3: 0,210 s - 38,7 MiB
 * Subtask 4: 0,263 s - 48,3 MiB
 
-##### Bulkreads
+###### Bulkreads
 
 Limits: 1,250 s - 240 MiB
 
@@ -123,7 +125,7 @@ Limits: 1,250 s - 240 MiB
 * Subtask 3: 0,509 s - 96,4 MiB
 * Subtask 4: 0,626 s - 121 MiB
 
-##### TimeForAChange
+###### TimeForAChange
 
 Limits: 2,100 s - 540 MiB
 
@@ -131,7 +133,7 @@ Limits: 2,100 s - 540 MiB
 * Subtask 3: 0,714 s - 140 MiB
 * Subtask 4: 0,952 s - 188 MiB
 
-##### Rollingback
+###### Rollingback
 
 Limits: 2,100 s - 550 MiB
 
@@ -139,7 +141,7 @@ Limits: 2,100 s - 550 MiB
 * Subtask 3: 2,095 s - 145 MiB
 * Subtask 4: Execution timed out.
 
-##### AlteringHistory
+###### AlteringHistory
 
 Limits: 2,100 s - 400 MiB
 
@@ -147,7 +149,7 @@ Limits: 2,100 s - 400 MiB
 * Subtask 3: 0,856 s - 140 MiB
 * Subtask 4: 1,158 s - 192 MiB
 
-##### Rollercoaster
+###### Rollercoaster
 
 Limits: 2,700 s - 1,03 GiB
 
@@ -155,7 +157,7 @@ Limits: 2,700 s - 1,03 GiB
 * Subtask 3: 0,780 s - 163 MiB
 * Subtask 4: 1,038 s - 217 MiB
 
-##### Lode
+###### Lode
 
 Limits: 2,000 s - 340 MiB
 
